@@ -14,8 +14,9 @@ fn main() {
         println!("1. Start 25-minute work session");
         println!("2. Start 5-minute break");
         println!("3. Start 15-minute long break");
-        println!("4. View session log");
-        println!("5. Exit");
+        println!("4. Start 1-minute test timer");
+        println!("5. View session log");
+        println!("6. Exit");
         print!("\nYour choice: ");
         io::stdout().flush().unwrap();
 
@@ -26,8 +27,9 @@ fn main() {
             "1" => start_timer(25, "Work"),
             "2" => start_timer(5, "Short Break"),
             "3" => start_timer(15, "Long Break"),
-            "4" => view_log(),
-            "5" => {
+            "4" => start_timer(1, "Test"),
+            "5" => view_log(),
+            "6" => {
                 println!("Goodbye! 👋");
                 break;
             }
@@ -69,22 +71,46 @@ fn start_timer(minutes: u32, session_type: &str) {
 }
 
 fn play_alert(session_type: &str) {
-    // Play system sound (Mac)
-    let _ = Command::new("afplay")
-        .arg("/System/Library/Sounds/Glass.aiff")
-        .spawn();
-    
-    // Show macOS notification
     let message = format!("{} session complete!", session_type);
-    let _ = Command::new("osascript")
-        .arg("-e")
-        .arg(format!(
-            "display notification \"{}\" with title \"Pomodoro Timer\" sound name \"Glass\"",
-            message
-        ))
-        .spawn();
     
-    // Also print terminal bell for good measure
+    // Cross-platform notification using native commands
+    #[cfg(target_os = "macos")]
+    {
+        // macOS notification using osascript
+        let _ = Command::new("osascript")
+            .arg("-e")
+            .arg(format!(
+                "display notification \"{}\" with title \"🍅 Pomodoro Timer\" sound name \"Glass\"",
+                message
+            ))
+            .spawn();
+            
+        // Play sound
+        let _ = Command::new("afplay")
+            .arg("/System/Library/Sounds/Glass.aiff")
+            .spawn();
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        // Linux notification using notify-send
+        let _ = Command::new("notify-send")
+            .arg("🍅 Pomodoro Timer")
+            .arg(&message)
+            .spawn();
+            
+        // Play sound - try paplay first, then aplay
+        let _ = Command::new("paplay")
+            .arg("/usr/share/sounds/freedesktop/stereo/complete.oga")
+            .spawn()
+            .or_else(|_| {
+                Command::new("aplay")
+                    .arg("/usr/share/sounds/alsa/Front_Center.wav")
+                    .spawn()
+            });
+    }
+    
+    // Terminal bell as fallback
     print!("\x07");
     io::stdout().flush().unwrap();
 }
