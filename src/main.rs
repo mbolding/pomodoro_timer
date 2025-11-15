@@ -57,11 +57,18 @@ fn start_timer(minutes: u32, session_type: &str) {
 
     println!("\n\n🔔 {} session complete!", session_type);
     
-    // Log the session
-    log_session(session_type, minutes, &start_time, &end_time);
-    
     // Play alert sound and show notification
     play_alert(session_type);
+    
+    // Ask for optional note
+    print!("\nAdd a note about what you did (press Enter to skip): ");
+    io::stdout().flush().unwrap();
+    let mut note = String::new();
+    io::stdin().read_line(&mut note).unwrap();
+    let note = note.trim();
+    
+    // Log the session with optional note
+    log_session(session_type, minutes, &start_time, &end_time, note);
     
     println!("Session logged! ✓");
     println!("Press Enter to continue...");
@@ -115,15 +122,27 @@ fn play_alert(session_type: &str) {
     io::stdout().flush().unwrap();
 }
 
-fn log_session(session_type: &str, duration: u32, start_time: &chrono::DateTime<Local>, end_time: &chrono::DateTime<Local>) {
-    let log_entry = format!(
-        "{} | {} | {} minutes | Started: {} | Ended: {}\n",
-        start_time.format("%Y-%m-%d"),
-        session_type,
-        duration,
-        start_time.format("%H:%M:%S"),
-        end_time.format("%H:%M:%S")
-    );
+fn log_session(session_type: &str, duration: u32, start_time: &chrono::DateTime<Local>, end_time: &chrono::DateTime<Local>, note: &str) {
+    let log_entry = if note.is_empty() {
+        format!(
+            "{} | {} | {} minutes | Started: {} | Ended: {}\n",
+            start_time.format("%Y-%m-%d"),
+            session_type,
+            duration,
+            start_time.format("%H:%M:%S"),
+            end_time.format("%H:%M:%S")
+        )
+    } else {
+        format!(
+            "{} | {} | {} minutes | Started: {} | Ended: {} | Note: {}\n",
+            start_time.format("%Y-%m-%d"),
+            session_type,
+            duration,
+            start_time.format("%H:%M:%S"),
+            end_time.format("%H:%M:%S"),
+            note
+        )
+    };
 
     let mut file = OpenOptions::new()
         .create(true)
